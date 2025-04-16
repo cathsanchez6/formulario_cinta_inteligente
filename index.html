@@ -1,65 +1,37 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Formulario Cinta Inteligente</title>
-  <style>
-    body { font-family: Arial, sans-serif; padding: 2rem; background: #f0f0f0; }
-    input, button {
-      display: block;
-      margin: 1rem 0;
-      padding: 0.6rem;
-      width: 100%;
-      max-width: 400px;
-    }
-    .confirmacion {
-      color: green;
-      font-weight: bold;
-    }
-  </style>
-</head>
-<body>
-  <h2>Formulario de Registro</h2>
-  <form id="formulario">
-    <input type="text" placeholder="Nombre completo" required />
-    <input type="email" placeholder="Correo electrónico" required />
-    <input type="tel" placeholder="Teléfono" required />
-    <button type="submit">Enviar 📤</button>
-    <p id="mensajeConfirmacion" class="confirmacion" style="display:none;">✅ Formulario enviado correctamente</p>
-  </form>
+<form id="formulario">
+  <input type="text" id="nombre" placeholder="Nombre completo" required>
+  <input type="email" id="correo" placeholder="Correo electrónico" required>
+  <input type="text" id="telefono" placeholder="Teléfono" required>
+  <button type="submit">Enviar</button>
+</form>
 
-  <script>
-    const form = document.getElementById("formulario");
+<script>
+  document.getElementById("formulario").addEventListener("submit", function(e) {
+    e.preventDefault();
 
-    form.addEventListener("submit", async (e) => {
-      e.preventDefault();
+    const datos = {
+      nombre: document.getElementById("nombre").value,
+      correo: document.getElementById("correo").value,
+      telefono: document.getElementById("telefono").value
+    };
 
-      const nombre = form.querySelector('input[placeholder="Nombre completo"]').value;
-      const correo = form.querySelector('input[placeholder="Correo electrónico"]').value;
-      const telefono = form.querySelector('input[placeholder="Teléfono"]').value;
-      const fecha = new Date().toLocaleString();
-
-      const datos = { nombre, correo, telefono, fecha };
-
-      try {
-        await fetch("https://script.google.com/macros/s/AKfycbwzgxy0AX69pjHb9PBLpGcXCMjbLGJ-Xu87kt14duaJeP4eavrYEcC_st0eLgKfK-1V4Q/exec", {
-          method: "POST",
-          mode: "no-cors", // para evitar problemas CORS
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify(datos)
-        });
-
-        document.getElementById("mensajeConfirmacion").style.display = "block";
-        form.reset();
-      } catch (error) {
-        alert("Error al enviar. Intenta más tarde.");
-        console.error(error);
+    fetch("https://script.google.com/macros/s/AKfycbwzgxy0AX69pjHb9PBLpGcXCMjbLGJ-Xu87kt14duaJeP4eavrYEcC_st0eLgKfK-1V4Q/exec", {
+      method: "POST",
+      body: JSON.stringify(datos),
+      headers: {
+        "Content-Type": "application/json"
       }
+    })
+    .then(res => res.text())
+    .then(respuesta => {
+      if (respuesta.includes("OK")) {
+        alert("Formulario enviado correctamente");
+      } else {
+        alert("Error al enviar: " + respuesta);
+      }
+    })
+    .catch(error => {
+      alert("Error de red: " + error);
     });
-  </script>
-</body>
-</html>
-
+  });
+</script>
