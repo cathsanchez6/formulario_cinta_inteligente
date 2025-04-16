@@ -5,18 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Formulario Cinta Inteligente</title>
   <style>
-    body { font-family: Arial, sans-serif; padding: 2rem; background: #f8f9fa; }
-    h2 { margin-bottom: 1rem; }
-    input, button, canvas {
+    body { font-family: Arial, sans-serif; padding: 2rem; background: #f0f0f0; }
+    input, button {
       display: block;
       margin: 1rem 0;
-      padding: 0.5rem;
+      padding: 0.6rem;
       width: 100%;
       max-width: 400px;
-    }
-    canvas {
-      border: 1px solid #ccc;
-      background: white;
     }
     .confirmacion {
       color: green;
@@ -29,105 +24,42 @@
   <form id="formulario">
     <input type="text" placeholder="Nombre completo" required />
     <input type="email" placeholder="Correo electrónico" required />
-    <input type="tel" placeholder="Telefono" required />
-  
-    <button type="submit">📤 Enviar</button>
-    <p id="mensajeConfirmacion" class="confirmacion d-none">Formulario enviado correctamente ✅</p>
+    <input type="tel" placeholder="Teléfono" required />
+    <button type="submit">Enviar 📤</button>
+    <p id="mensajeConfirmacion" class="confirmacion" style="display:none;">✅ Formulario enviado correctamente</p>
   </form>
 
   <script>
     const form = document.getElementById("formulario");
-    const canvas = document.getElementById("firmaCanvas");
-    const ctx = canvas.getContext("2d");
-    let dibujando = false;
-
-    function getPosicion(evento) {
-      const rect = canvas.getBoundingClientRect();
-      if (evento.touches) {
-        return {
-          x: evento.touches[0].clientX - rect.left,
-          y: evento.touches[0].clientY - rect.top
-        };
-      } else {
-        return {
-          x: evento.clientX - rect.left,
-          y: evento.clientY - rect.top
-        };
-      }
-    }
-
-    canvas.addEventListener("mousedown", (e) => {
-      dibujando = true;
-      const pos = getPosicion(e);
-      ctx.beginPath();
-      ctx.moveTo(pos.x, pos.y);
-    });
-
-    canvas.addEventListener("mousemove", (e) => {
-      if (!dibujando) return;
-      const pos = getPosicion(e);
-      ctx.lineTo(pos.x, pos.y);
-      ctx.stroke();
-    });
-    
-
-    function generarCodigo(nombre) {
-      const iniciales = nombre
-        .split(" ")
-        .map(p => p[0])
-        .join("")
-        .toUpperCase();
-      const ahora = new Date();
-      const fecha = ahora.toISOString().slice(0, 10).replace(/-/g, "");
-      const hora = ahora.getHours().toString().padStart(2, '0') + ahora.getMinutes().toString().padStart(2, '0');
-      const random = Math.floor(Math.random() * 900 + 100);
-      return `${iniciales}-${fecha}-${hora}-${random}`;
-    }
 
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
 
       const nombre = form.querySelector('input[placeholder="Nombre completo"]').value;
       const correo = form.querySelector('input[placeholder="Correo electrónico"]').value;
-      const telefono = form.querySelector('input[placeholder="Telefono"]').value;
-      const codigo = generarCodigo(nombre);
+      const telefono = form.querySelector('input[placeholder="Teléfono"]').value;
+      const fecha = new Date().toLocaleString();
 
+      const datos = { nombre, correo, telefono, fecha };
+
+      try {
+        await fetch("https://script.google.com/macros/s/AKfycbw_l8wAzdygyp08b1SU1f_vEVgLzoTTRe_jjPx8NPuugiuG968-HTA8B3fStENNee8O/exec", {
+          method: "POST",
+          mode: "no-cors", // para evitar problemas CORS
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(datos)
+        });
+
+        document.getElementById("mensajeConfirmacion").style.display = "block";
+        form.reset();
+      } catch (error) {
+        alert("Error al enviar. Intenta más tarde.");
+        console.error(error);
       }
-
-      const reader = new FileReader();
-      reader.onloadend = async function () {
-        const foto = reader.result;
-
-        const data = {
-          nombre,
-          correo,
-          telefono,
-          foto,
-          firma,
-          fecha: new Date().toLocaleString(),
-          codigo
-        };
-
-        try {
-          const res = await fetch("https://script.google.com/macros/s/AKfycbw_l8wAzdygyp08b1SU1f_vEVgLzoTTRe_jjPx8NPuugiuG968-HTA8B3fStENNee8O/exec", {
-            method: "POST", mode: "no-cors", // importante para evitar el error CORS headers: { "Content-Type": "application/json"},
-            body: JSON.stringify(datos)});
-
-          if (res.ok) {
-            document.getElementById("mensajeConfirmacion").classList.remove("d-none");
-            form.reset();
-            limpiarFirma();
-          } else {
-            alert("Error al enviar. Intenta más tarde.");
-          }
-        } catch (error) {
-          alert("Error de conexión.");
-          console.error(error);
-        }
-      };
-
-      reader.readAsDataURL(archivoFoto);
     });
   </script>
 </body>
 </html>
+
