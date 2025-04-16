@@ -1,1 +1,1 @@
-# formulario_cinta_inteligente
+index
