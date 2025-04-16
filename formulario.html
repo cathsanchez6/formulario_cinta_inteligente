@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Formulario Cinta Inteligente</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 2rem; background: #f8f9fa; }
+    h2 { margin-bottom: 1rem; }
+    input, button, canvas {
+      display: block;
+      margin: 1rem 0;
+      padding: 0.5rem;
+      width: 100%;
+      max-width: 400px;
+    }
+    canvas {
+      border: 1px solid #ccc;
+      background: white;
+    }
+    .confirmacion {
+      color: green;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <h2>Formulario de Registro</h2>
+  <form id="formulario">
+    <input type="text" placeholder="Nombre completo" required />
+    <input type="email" placeholder="Correo electrónico" required />
+    <input type="tel" placeholder="Telefono" required />
+    <input type="file" id="foto" accept="image/*" capture="environment" required />
+    
+    <label>Firma digital:</label>
+    <canvas id="firmaCanvas" width="400" height="200"></canvas>
+    
+    <button type="button" onclick="limpiarFirma()">🧹 Limpiar firma</button>
+    <button type="submit">📤 Enviar</button>
+    <p id="mensajeConfirmacion" class="confirmacion d-none">Formulario enviado correctamente ✅</p>
+  </form>
+
+  <script>
+    const form = document.getElementById("formulario");
+    const canvas = document.getElementById("firmaCanvas");
+    const ctx = canvas.getContext("2d");
+    let dibujando = false;
+
+    function getPosicion(evento) {
+      const rect = canvas.getBoundingClientRect();
+      if (evento.touches) {
+        return {
+          x: evento.touches[0].clientX - rect.left,
+          y: evento.touches[0].clientY - rect.top
+        };
+      } else {
+        return {
+          x: evento.clientX - rect.left,
+          y: evento.clientY - rect.top
+        };
+      }
+    }
+
+    canvas.addEventListener("mousedown", (e) => {
+      dibujando = true;
+      const pos = getPosicion(e);
+      ctx.beginPath();
+      ctx.moveTo(pos.x, pos.y);
+    });
+
+    canvas.addEventListener("mousemove", (e) => {
+      if (!dibujando) return;
+      const pos = getPosicion(e);
+      ctx.lineTo(pos.x, pos.y);
+      ctx.stroke();
+    });
+
+    canvas.addEventListener("mouseup", () => dibujando = false);
+    canvas.addEventListener("mouseout", () => dibujando = false);
+
+    canvas.addEventListener("touchstart", (e) => {
+      e.preventDefault();
+      dibujando = true;
+      const pos = getPosicion(e);
+      ctx.beginPath();
+      ctx.moveTo(pos.x, pos.y);
+    }, { passive: false });
+
+    canvas.addEventListener("touchmove", (e) => {
+      e.preventDefault();
+      if (!dibujando) return;
+      const pos = getPosicion(e);
+      ctx.lineTo(pos.x, pos.y);
+      ctx.stroke();
+    }, { passive: false });
+
+    canvas.addEventListener("touchend", () => dibujando = false);
+    canvas.addEventListener("touchcancel", () => dibujando = false);
+
+    function limpiarFirma() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+
+    function generarCodigo(nombre) {
+      const iniciales = nombre
+        .split(" ")
+        .map(p => p[0])
+        .join("")
+        .toUpperCase();
+      const ahora = new Date();
+      const fecha = ahora.toISOString().slice(0, 10).replace(/-/g, "");
+      const hora = ahora.getHours().toString().padStart(2, '0') + ahora.getMinutes().toString().padStart(2, '0');
+      const random = Math.floor(Math.random() * 900 + 100);
+      return `${iniciales}-${fecha}-${hora}-${random}`;
+    }
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const nombre = form.querySelector('input[placeholder="Nombre completo"]').value;
+      const correo = form.querySelector('input[placeholder="Correo electrónico"]').value;
+      const telefono = form.querySelector('input[placeholder="Telefono"]').value;
+      const codigo = generarCodigo(nombre);
+
+      const firma = canvas.toDataURL();
+      const fotoInput = document.getElementById("foto");
+      const archivoFoto = fotoInput.files[0];
+
+      if (!archivoFoto) {
+        alert("Por favor toma una foto del producto.");
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onloadend = async function () {
+        const foto = reader.result;
+
+        const data = {
+          nombre,
+          correo,
+          telefono,
+          foto,
+          firma,
+          fecha: new Date().toLocaleString(),
+          codigo
+        };
+
+        try {
+          const res = await fetch("https://script.google.com/macros/s/AKfycbzsPTHrLnOvj9AfgHdJWEVIIxqQTvERygQxPwkdAUSzn9jYqD-2yUH672jsHrWjzu6L/exec", {
+            method: "POST",
+            body: JSON.stringify(data),
+            headers: { "Content-Type": "application/json" }
+          });
+
+          if (res.ok) {
+            document.getElementById("mensajeConfirmacion").classList.remove("d-none");
+            form.reset();
+            limpiarFirma();
+          } else {
+            alert("Error al enviar. Intenta más tarde.");
+          }
+        } catch (error) {
+          alert("Error de conexión.");
+          console.error(error);
+        }
+      };
+
+      reader.readAsDataURL(archivoFoto);
+    });
+  </script>
+</body>
+</html>
